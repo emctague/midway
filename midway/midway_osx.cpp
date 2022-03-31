@@ -12,13 +12,13 @@ void midway::midwayDecodeEventOSX(void *context, MIDITimeStamp ts, MIDIUniversal
 #define VOICE1 kMIDIMessageTypeChannelVoice1
     switch (CMB(msg.type, msg.system.status)) {
         case CMB(VOICE1, kMIDICVStatusNoteOn):
-            client->m_handleNoteStart(devShared, msg.group, msg.channelVoice1.note.number, msg.channelVoice1.note.velocity);
+            client->m_handleNoteStart(devShared, msg.channelVoice1.channel, msg.channelVoice1.note.number, msg.channelVoice1.note.velocity);
             break;
         case CMB(VOICE1, kMIDICVStatusNoteOff):
-            client->m_handleNoteEnd(devShared, msg.group, msg.channelVoice1.note.number);
+            client->m_handleNoteEnd(devShared, msg.channelVoice1.channel, msg.channelVoice1.note.number);
             break;
         case CMB(VOICE1, kMIDICVStatusControlChange):
-            client->m_handleControlChange(devShared, msg.group, msg.channelVoice1.controlChange.index,
+            client->m_handleControlChange(devShared, msg.channelVoice1.channel, msg.channelVoice1.controlChange.index,
                                           msg.channelVoice1.controlChange.data);
             break;
     }

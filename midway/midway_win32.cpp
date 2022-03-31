@@ -12,11 +12,11 @@ void midway::MidiCallback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWOR
 
     if (wMsg == MIM_DATA) {
         if (status >= 128 && status <= 143) {
-            client->m_handleNoteEnd(devShared, status - 127, note);
+            client->m_handleNoteEnd(devShared, status - 128, note);
         } else if (status >= 144 && status <= 159) {
-            client->m_handleNoteStart(devShared, status - 143, note, velocity);
+            client->m_handleNoteStart(devShared, status - 144, note, velocity);
         } else if (status >= 176 && status <= 191) {
-            client->m_handleControlChange(devShared, status - 175, note, velocity);
+            client->m_handleControlChange(devShared, status - 176, note, velocity);
         }
     }
 }
