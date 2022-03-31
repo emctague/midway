@@ -12,9 +12,8 @@ the APIs underlying it.
  - Behave predictably on every platform
  - Bare minimum support for note on/off events
 
-## Current Challenges
+## Current Limitations
 
-Differences in behaviour or unclear/missing functionality in underlying platform APIs comes with some challenges:
-
- - On Win32, we need to be able to provide a free-able handle for a given device connection, but on macOS each device is
-   connected to a central object and does not have to be freed itself.
+ - We cannot get the device manufacturer name on Win32.
+ - We cannot identify the source device for a played note.
+ - We do not correctly identify the note channel on Win32.

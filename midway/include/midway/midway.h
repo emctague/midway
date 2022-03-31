@@ -27,18 +27,23 @@ namespace midway {
     public:
         explicit MidiDevice(MidiDeviceOSHandle endpoint);
         [[nodiscard]] bool IsConnected() const { return m_connected; }
-        [[nodiscard]] bool IsSameAsDeviceAtIndex(int index) const;
+
+        /** Get device's display name. */
         [[nodiscard]] const std::string& GetDeviceName() const { return m_deviceName; }
+
+        /** Get device manufacturer. Note that Win32 does not provide accurate manufacturer information. */
         [[nodiscard]] const std::string& GetDeviceManufacturer() const { return m_deviceManufacturer; }
 
     protected:
         friend class MidiClient;
         void SetConnectionStatus(bool isConnected) { m_connected = isConnected; }
 
+        friend class MidiClient;
+        [[nodiscard]] bool IsSameAsDeviceAtIndex(int index) const;
+
 #if defined(__APPLE__)
         MIDIEndpointRef m_handle {};
 #elif defined(WIN32)
-        explicit MidiDevice(HMIDIIN m_midiIn);
         HMIDIIN m_handle;
 #endif
 
@@ -139,7 +144,7 @@ namespace midway {
         bool m_updateCausesOSRunLoop = true;
 
         [[nodiscard]] int CountMidiDevices() const;
-        static MidiDeviceOSHandle GetMidiHandle(int index);
+        MidiDeviceOSHandle GetMidiHandle(int index);
 
         std::vector<std::shared_ptr<MidiDevice>> m_activeDevices;
         std::function<void(int, int, int)> m_handleNoteStart = [](int,int,int){};
