@@ -1,6 +1,7 @@
 if (APPLE)
     set(PLATFORM_SOURCES midway_osx.cpp)
     set(PLATFORM_LIBS "-framework CoreMIDI" "-framework CoreFoundation")
+    set(CMAKE_CXX_FLAGS "-x objective-c++")
 elseif(WIN32)
     set(PLATFORM_SOURCES midway_win32.cpp)
     set(PLATFORM_LIBS winmm)

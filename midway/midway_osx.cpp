@@ -1,22 +1,14 @@
 #include "include/midway/midway.h"
 #include <CoreMIDI/CoreMIDI.h>
 #include <iostream>
-
-void midwayMidiNotifyProcOSX(const MIDINotification *message, void *refCon) {
-    // why is this never called?
-    std::cout << "MIDI Notif" << std::endl;
-}
-
+#import <Foundation/Foundation.h>
 
 void midway::midwayDecodeEventOSX(void *context, MIDITimeStamp ts, MIDIUniversalMessage msg) {
     auto client = ((MidiClient *) context);
 
-#define CMB(A, B) (((uint8_t)(A) << 8) | (uint8_t)(B))
+#define CMB(A, B) (((uint64_t)(A) << 32) | (uint64_t)(B))
 #define VOICE1 kMIDIMessageTypeChannelVoice1
     switch (CMB(msg.type, msg.system.status)) {
-        case CMB(kMIDIMessageTypeSystem, kMIDIStatusStop):
-            client->m_handleDeviceDisconnect();
-            break;
         case CMB(VOICE1, kMIDICVStatusNoteOn):
             client->m_handleNoteStart(msg.group, msg.channelVoice1.note.number, msg.channelVoice1.note.velocity);
             break;
@@ -33,14 +25,16 @@ void midway::midwayDecodeEventOSX(void *context, MIDITimeStamp ts, MIDIUniversal
 }
 
 midway::MidiClient::MidiClient(const char *clientName) {
-    auto clientNameRef = CFStringCreateWithCStringNoCopy(nullptr, clientName, kCFStringEncodingUTF8, nullptr);
-    MIDIClientCreate(clientNameRef, (MIDINotifyProc) midwayMidiNotifyProcOSX, (void *) this, &m_client);
+    auto clientNameRef = CFStringCreateWithCStringNoCopy(nullptr, clientName, kCFStringEncodingUTF8, kCFAllocatorNull);
+    MIDIClientCreate(clientNameRef, nullptr, (void *) this, &m_client);
 
     // MIDI message pump. We have no way of figuring out which device sent the message right now :(
     MIDIInputPortCreateWithProtocol(m_client, clientNameRef, kMIDIProtocol_1_0, &m_inPort,
                                     ^(const MIDIEventList *events, void *ref) {
                                         MIDIEventListForEachEvent(events, midway::midwayDecodeEventOSX, ref);
                                     });
+
+    CFRelease(clientNameRef);
 }
 
 midway::MidiClient::~MidiClient() {
@@ -48,32 +42,35 @@ midway::MidiClient::~MidiClient() {
     MIDIClientDispose(m_client);
 }
 
-int midway::MidiClient::CountDevices() {
-    return (int) MIDIGetNumberOfSources();
+int midway::MidiClient::CountMidiDevices() const {
+    if (m_updateCausesOSRunLoop) CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true);
+    return (int)MIDIGetNumberOfSources();
 }
 
-bool midway::MidiClient::ConnectToDevice(const MidiDeviceInfo &deviceInfo) {
-    MIDIEndpointRef ref = 0;
-    MIDIObjectType type;
-    auto status = MIDIObjectFindByUniqueID((MIDIUniqueID) deviceInfo.GetId(), &ref, &type);
-
-    if (!ref || status == kMIDIObjectNotFound || type != kMIDIObjectType_Source) return false;
-    MIDIPortConnectSource(m_inPort, ref, this);
-
-    return true;
+midway::MidiDeviceOSHandle midway::MidiClient::GetMidiHandle(int index) {
+    return MIDIGetSource(index);
 }
 
-midway::MidiDeviceInfo midway::MidiClient::GetDeviceInfo(int id) {
-    MIDIEndpointRef er = MIDIGetSource(id);
+void midway::MidiClient::StartDeviceInput(std::shared_ptr<MidiDevice> &device) {
+    MIDIPortConnectSource(m_inPort, device->m_handle, this);
+}
 
-    SInt32 deviceId = 0;
-    MIDIObjectGetIntegerProperty(er, kMIDIPropertyUniqueID, &deviceId);
+void midway::MidiClient::StopDeviceInput(std::shared_ptr<MidiDevice> &device) {
+    MIDIPortDisconnectSource(m_inPort, device->m_handle);
+}
 
-    CFStringRef displayName = CFSTR("");
-    MIDIObjectGetStringProperty(er, kMIDIPropertyDisplayName, &displayName);
 
-    return MidiDeviceInfo{
-            (uint32_t) deviceId,
-            std::string(CFStringGetCStringPtr(displayName, kCFStringEncodingUTF8))
-    };
+bool midway::MidiDevice::IsSameAsDeviceAtIndex(int index) const {
+    return MIDIGetSource(index) == m_handle;
+}
+
+midway::MidiDevice::MidiDevice(midway::MidiDeviceOSHandle handle) : m_handle(handle) {
+    CFStringRef ref = CFSTR("");
+    MIDIObjectGetStringProperty(m_handle, kMIDIPropertyDisplayName, &ref);
+    m_deviceName = [((NSString*)ref) UTF8String];
+
+    MIDIObjectGetStringProperty(m_handle, kMIDIPropertyManufacturer, &ref);
+    m_deviceManufacturer = [((NSString*)ref) UTF8String];
+
+    CFRelease(ref);
 }

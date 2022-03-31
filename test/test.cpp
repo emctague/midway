@@ -11,6 +11,14 @@
 int main() {
     // Initialize MIDI client
     midway::MidiClient client("TestMIDIClient");
+    client.OnDeviceConnect([&](std::shared_ptr<midway::MidiDevice>& device) {
+        std::cout << "Device added: " << device->GetDeviceName() << " by " << device->GetDeviceManufacturer() << std::endl;
+        client.StartDeviceInput(device);
+    });
+    client.OnDeviceDisconnect([&](std::shared_ptr<midway::MidiDevice>& device) {
+        std::cout << "Device removed!" << std::endl;
+        client.StopDeviceInput(device);
+    });
     client.OnNoteStart([](int channel, int note, int velocity) {
         std::cout << "Key " << note << " pressed at vel. " << velocity << std::endl;
     });
@@ -18,15 +26,8 @@ int main() {
         std::cout << "Key " << note << " released" << std::endl;
     });
 
-    // Make sure there is a MIDI keyboard plugged in
-    auto nDevices = client.CountDevices();
-    if (nDevices < 1) return 0;
-
-    // Connect to first MIDI keyboard
-    auto firstDeviceInfo = client.GetDeviceInfo(0);
-    std::cout << "Connecting to: " << firstDeviceInfo.GetName() << std::endl;
-    if (!client.ConnectToDevice(firstDeviceInfo)) return 0;
-
-    // Wait a bit!
-    sleep(60);
+    for (int i = 0; i < 120; i++) {
+        client.UpdateAvailableDevices();
+        sleep(1);
+    }
 }

@@ -16,8 +16,5 @@ the APIs underlying it.
 
 Differences in behaviour or unclear/missing functionality in underlying platform APIs comes with some challenges:
 
- - Detecting MIDI device connect+disconnect without polling seems to be inconsistent or not available
- - On macOS, we can uniquely identify a MIDI device between connections/usages, but not on Win32, where devices are
-   apparently identified only by the order they were connected to the system.
  - On Win32, we need to be able to provide a free-able handle for a given device connection, but on macOS each device is
    connected to a central object and does not have to be freed itself.
