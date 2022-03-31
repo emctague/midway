@@ -16,4 +16,3 @@ the APIs underlying it.
 
  - We cannot get the device manufacturer name on Win32.
  - We cannot identify the source device for a played note.
- - We do not correctly identify the note channel on Win32.

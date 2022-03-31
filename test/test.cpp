@@ -25,6 +25,9 @@ int main() {
     client.OnNoteEnd([](int channel, int note) {
         std::cout << "Key " << note << " released on ch. " << channel << std::endl;
     });
+    client.OnControlChange([](int channel, int control, int value) {
+        std::cout << "Control " << control << " set to " << value << " on ch. " << channel << std::endl;
+    });
 
     for (int i = 0; i < 120; i++) {
         client.UpdateAvailableDevices();

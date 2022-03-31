@@ -9,14 +9,12 @@ void midway::MidiCallback(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWOR
     BYTE velocity = dwParam1 >> 16;
 
     if (wMsg == MIM_DATA) {
-        if (status == 144) {
-            client->m_handleNoteStart(1, note, velocity);
-        } else if (status == 128) {
-            client->m_handleNoteEnd(1, note);
-        } else if (status == 176) {
-            client->m_handleControlChange(1, note, velocity);
-        } else {
-            std::cout << "UNKNOWN STATUS: " << (UINT)status << std::endl;
+        if (status >= 128 && status <= 143) {
+            client->m_handleNoteEnd(status - 127, note);
+        } else if (status >= 144 && status <= 159) {
+            client->m_handleNoteStart(status - 143, note, velocity);
+        } else if (status >= 176 && status <= 191) {
+            client->m_handleControlChange(status - 175, note, velocity);
         }
     }
 }
