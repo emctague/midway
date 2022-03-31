@@ -23,9 +23,11 @@ namespace midway {
     using MidiDeviceOSHandle = HMIDIIN;
 #endif
 
-    class MidiDevice {
+    class MidiClient;
+
+    class MidiDevice : public std::enable_shared_from_this<MidiDevice> {
     public:
-        explicit MidiDevice(MidiDeviceOSHandle endpoint);
+        explicit MidiDevice(MidiClient *client);
         [[nodiscard]] bool IsConnected() const { return m_connected; }
 
         /** Get device's display name. */
@@ -34,7 +36,14 @@ namespace midway {
         /** Get device manufacturer. Note that Win32 does not provide accurate manufacturer information. */
         [[nodiscard]] const std::string& GetDeviceManufacturer() const { return m_deviceManufacturer; }
 
+        MidiClient *GetClient() { return m_pMidiClient; }
+
+        std::shared_ptr<MidiDevice> GetShared() { return shared_from_this(); }
+
     protected:
+        friend class MidiCLient;
+        void Setup(MidiDeviceOSHandle endpoint);
+
         friend class MidiClient;
         void SetConnectionStatus(bool isConnected) { m_connected = isConnected; }
 
@@ -46,6 +55,8 @@ namespace midway {
 #elif defined(WIN32)
         HMIDIIN m_handle;
 #endif
+
+        MidiClient *m_pMidiClient;
 
         std::string m_deviceName;
         std::string m_deviceManufacturer;
@@ -103,13 +114,13 @@ namespace midway {
          * Set the callback to be called when a note begins playing.
          * @param handler The callback function to be invoked.
          */
-        void OnNoteStart(std::function<void(int channel, int note, int velocity)> handler);
+        void OnNoteStart(std::function<void(std::shared_ptr<MidiDevice>& device, int channel, int note, int velocity)> handler);
 
         /**
          * Set the callback to be called when a note stops playing.
          * @param handler The callback function to be invoked.
          */
-        void OnNoteEnd(std::function<void(int channel, int note)> handler);
+        void OnNoteEnd(std::function<void(std::shared_ptr<MidiDevice>& device, int channel, int note)> handler);
 
         /**
          * Set the callback to be called when a device becomes available.
@@ -127,7 +138,7 @@ namespace midway {
          * Set the callback to be called when a control surface's value is changed.
          * @param handler The callback function to be invoked.
          */
-        void OnControlChange(std::function<void(int channel, int control, int value)> handler);
+        void OnControlChange(std::function<void(std::shared_ptr<MidiDevice>& device, int channel, int control, int value)> handler);
 
         ~MidiClient();
 
@@ -144,15 +155,16 @@ namespace midway {
         bool m_updateCausesOSRunLoop = true;
 
         [[nodiscard]] int CountMidiDevices() const;
-        MidiDeviceOSHandle GetMidiHandle(int index);
+        MidiDeviceOSHandle GetMidiHandle(int index, MidiDevice *devicePtr);
 
         std::vector<std::shared_ptr<MidiDevice>> m_activeDevices;
-        std::function<void(int, int, int)> m_handleNoteStart = [](int,int,int){};
-        std::function<void(int, int)> m_handleNoteEnd = [](int,int){};
+        std::function<void(std::shared_ptr<MidiDevice>&, int, int, int)> m_handleNoteStart = [](std::shared_ptr<MidiDevice>&,int,int,int){};
+        std::function<void(std::shared_ptr<MidiDevice>&, int, int)> m_handleNoteEnd = [](std::shared_ptr<MidiDevice>&,int,int){};
+        std::function<void(std::shared_ptr<MidiDevice>&, int, int, int)> m_handleControlChange = [](std::shared_ptr<MidiDevice>&,int,int,int){};
         std::function<void(std::shared_ptr<MidiDevice>&)> m_handleDeviceConnect = [](std::shared_ptr<MidiDevice>&){};
         std::function<void(std::shared_ptr<MidiDevice>&)> m_handleDeviceDisconnect = [](std::shared_ptr<MidiDevice>&){};
-        std::function<void(int, int, int)> m_handleControlChange = [](int,int,int){};
     };
+
 
 }
 

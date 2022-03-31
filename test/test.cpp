@@ -19,14 +19,14 @@ int main() {
         std::cout << "Device removed: " << device->GetDeviceName() << " by " << device->GetDeviceManufacturer() << std::endl;
         client.StopDeviceInput(device);
     });
-    client.OnNoteStart([](int channel, int note, int velocity) {
-        std::cout << "Key " << note << " pressed at vel. " << velocity << " on ch. " << channel << std::endl;
+    client.OnNoteStart([](std::shared_ptr<midway::MidiDevice>& device, int channel, int note, int velocity) {
+        std::cout << "Key " << note << " pressed at vel. " << velocity << " on ch. " << channel << " on device " << device->GetDeviceName() << std::endl;
     });
-    client.OnNoteEnd([](int channel, int note) {
-        std::cout << "Key " << note << " released on ch. " << channel << std::endl;
+    client.OnNoteEnd([](std::shared_ptr<midway::MidiDevice>& device, int channel, int note) {
+        std::cout << "Key " << note << " released on ch. " << channel << " on device " << device->GetDeviceName() << std::endl;
     });
-    client.OnControlChange([](int channel, int control, int value) {
-        std::cout << "Control " << control << " set to " << value << " on ch. " << channel << std::endl;
+    client.OnControlChange([](std::shared_ptr<midway::MidiDevice>& device, int channel, int control, int value) {
+        std::cout << "Control " << control << " set to " << value << " on ch. " << channel << " on device " << device->GetDeviceName() << std::endl;
     });
 
     for (int i = 0; i < 120; i++) {

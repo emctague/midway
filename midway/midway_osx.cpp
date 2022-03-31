@@ -4,19 +4,21 @@
 #import <Foundation/Foundation.h>
 
 void midway::midwayDecodeEventOSX(void *context, MIDITimeStamp ts, MIDIUniversalMessage msg) {
-    auto client = ((MidiClient *) context);
+    auto device = (MidiDevice*)context;
+    auto devShared = device->GetShared();
+    auto client = device->GetClient();
 
 #define CMB(A, B) (((uint64_t)(A) << 32) | (uint64_t)(B))
 #define VOICE1 kMIDIMessageTypeChannelVoice1
     switch (CMB(msg.type, msg.system.status)) {
         case CMB(VOICE1, kMIDICVStatusNoteOn):
-            client->m_handleNoteStart(msg.group, msg.channelVoice1.note.number, msg.channelVoice1.note.velocity);
+            client->m_handleNoteStart(devShared, msg.group, msg.channelVoice1.note.number, msg.channelVoice1.note.velocity);
             break;
         case CMB(VOICE1, kMIDICVStatusNoteOff):
-            client->m_handleNoteEnd(msg.group, msg.channelVoice1.note.number);
+            client->m_handleNoteEnd(devShared, msg.group, msg.channelVoice1.note.number);
             break;
         case CMB(VOICE1, kMIDICVStatusControlChange):
-            client->m_handleControlChange(msg.group, msg.channelVoice1.controlChange.index,
+            client->m_handleControlChange(devShared, msg.group, msg.channelVoice1.controlChange.index,
                                           msg.channelVoice1.controlChange.data);
             break;
     }
@@ -47,12 +49,12 @@ int midway::MidiClient::CountMidiDevices() const {
     return (int)MIDIGetNumberOfSources();
 }
 
-midway::MidiDeviceOSHandle midway::MidiClient::GetMidiHandle(int index) {
+midway::MidiDeviceOSHandle midway::MidiClient::GetMidiHandle(int index, MidiDevice *device) {
     return MIDIGetSource(index);
 }
 
 void midway::MidiClient::StartDeviceInput(std::shared_ptr<MidiDevice> &device) {
-    MIDIPortConnectSource(m_inPort, device->m_handle, this);
+    MIDIPortConnectSource(m_inPort, device->m_handle, device.get());
 }
 
 void midway::MidiClient::StopDeviceInput(std::shared_ptr<MidiDevice> &device) {
@@ -64,7 +66,9 @@ bool midway::MidiDevice::IsSameAsDeviceAtIndex(int index) const {
     return MIDIGetSource(index) == m_handle;
 }
 
-midway::MidiDevice::MidiDevice(midway::MidiDeviceOSHandle handle) : m_handle(handle) {
+void midway::MidiDevice::Setup(midway::MidiDeviceOSHandle handle)
+{
+    m_handle = handle;
     CFStringRef ref = CFSTR("");
     MIDIObjectGetStringProperty(m_handle, kMIDIPropertyDisplayName, &ref);
     m_deviceName = [((NSString*)ref) UTF8String];

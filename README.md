@@ -15,4 +15,3 @@ the APIs underlying it.
 ## Current Limitations
 
  - We cannot get the device manufacturer name on Win32.
- - We cannot identify the source device for a played note.

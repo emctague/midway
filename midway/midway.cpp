@@ -22,7 +22,8 @@ void midway::MidiClient::UpdateAvailableDevices() {
             stillExistingDevices[std::distance(m_activeDevices.begin(), found)] = true;
         } else {
             // Create a handle for new devices
-            auto device = std::make_shared<MidiDevice>(GetMidiHandle(i));
+            auto device = std::make_shared<MidiDevice>(this);
+            device->Setup(GetMidiHandle(i, device.get()));
             newDevices.push_back(device);
             m_handleDeviceConnect(device);
         }
@@ -46,12 +47,16 @@ void midway::MidiClient::UpdateAvailableDevices() {
 }
 
 
-void midway::MidiClient::OnNoteStart(std::function<void(int, int, int)> handler) {
+void midway::MidiClient::OnNoteStart(std::function<void(std::shared_ptr<MidiDevice>&, int, int, int)> handler) {
     m_handleNoteStart = std::move(handler);
 }
 
-void midway::MidiClient::OnNoteEnd(std::function<void(int, int)> handler) {
+void midway::MidiClient::OnNoteEnd(std::function<void(std::shared_ptr<MidiDevice>&, int, int)> handler) {
     m_handleNoteEnd = std::move(handler);
+}
+
+void midway::MidiClient::OnControlChange(std::function<void(std::shared_ptr<MidiDevice>&, int, int, int)> handler) {
+    m_handleControlChange = std::move(handler);
 }
 
 void midway::MidiClient::OnDeviceDisconnect(std::function<void(std::shared_ptr<MidiDevice>&)> handler) {
@@ -63,11 +68,9 @@ void midway::MidiClient::OnDeviceConnect(std::function<void(std::shared_ptr<Midi
     m_handleDeviceConnect = std::move(handler);
 }
 
-void midway::MidiClient::OnControlChange(std::function<void(int, int, int)> handler) {
-    m_handleControlChange = std::move(handler);
-}
-
 void midway::MidiClient::SetUpdateCausesOSRunLoop(bool updateCausesOSRunLoop) {
     m_updateCausesOSRunLoop = updateCausesOSRunLoop;
 }
 
+midway::MidiDevice::MidiDevice(MidiClient *client) : m_pMidiClient(client) {
+}
